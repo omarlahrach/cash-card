@@ -21,6 +21,14 @@ class CashCardApplicationTests {
     TestRestTemplate restTemplate;
 
     @Test
+    void shouldRejectUsersWhoAreNotCardOwners() {
+        ResponseEntity<String> response = restTemplate
+                .withBasicAuth("hank-owns-no-cards", "qrs456")
+                .getForEntity("/cashcards/99", String.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
     void shouldNotReturnACashCardWhenUsingBadCredentials() {
         ResponseEntity<String> response = restTemplate
                 .withBasicAuth("BAD-USER", "abc123")

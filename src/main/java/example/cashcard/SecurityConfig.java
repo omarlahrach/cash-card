@@ -16,13 +16,19 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
     @Bean
-    UserDetailsService testOnlyUser(PasswordEncoder passwordEncoder) {
+    UserDetailsService testOnlyUsers(PasswordEncoder passwordEncoder) {
         User.UserBuilder userBuilder = User.builder();
         UserDetails sarah = userBuilder
                 .username("sarah1")
                 .password(passwordEncoder.encode("abc123"))
+                .roles("CARD-OWNER")
                 .build();
-        return new InMemoryUserDetailsManager(sarah);
+        UserDetails hankOwnsNoCards = userBuilder
+                .username("hank-owns-no-cards")
+                .password(passwordEncoder.encode("qrs456"))
+                .roles("NON-OWNER")
+                .build();
+        return new InMemoryUserDetailsManager(sarah, hankOwnsNoCards);
     }
 
     @Bean
@@ -35,7 +41,7 @@ public class SecurityConfig {
         return http
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/cashcards/**")
-                        .authenticated())
+                        .hasRole("CARD-OWNER"))
                 .httpBasic(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .build();
