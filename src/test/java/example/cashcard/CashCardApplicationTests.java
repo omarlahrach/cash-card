@@ -15,46 +15,53 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class CashCardApplicationTests {
-	@Autowired
-	TestRestTemplate restTemplate;
+    @Autowired
+    TestRestTemplate restTemplate;
 
-	@Test
-	void shouldReturnACashCardWhenDataIsSaved() {
-		ResponseEntity<String> response = restTemplate.getForEntity("/cashcards/99", String.class);
-		DocumentContext documentContext = JsonPath.parse(response.getBody());
+    @Test
+    void shouldReturnAListOfCashCard() {
+        ResponseEntity<String> response = restTemplate.getForEntity("/cashcards", String.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotBlank();
+    }
 
-		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    @Test
+    void shouldCreateANewCashCard() {
+        CashCard newCashCard = new CashCard(null, 250.00);
+        ResponseEntity<Void> createResponse = restTemplate.postForEntity("/cashcards", newCashCard, Void.class);
+        assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-		Number id = documentContext.read("$.id");
-		assertThat(id).isEqualTo(99);
+        URI locationOfNewCashCard = createResponse.getHeaders().getLocation();
+        ResponseEntity<String> getResponse = restTemplate.getForEntity(locationOfNewCashCard, String.class);
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-		Double amount = documentContext.read("$.amount");
-		assertThat(amount).isEqualTo(123.45);
-	}
+        DocumentContext documentContext = JsonPath.parse(getResponse.getBody());
+        Number id = documentContext.read("$.id");
+        Double amount = documentContext.read("$.amount");
 
-	@Test
-	void shouldNotReturnACashCardWithAnUnknownId() {
-		ResponseEntity<String> response = restTemplate.getForEntity("/cashcards/1000", String.class);
+        assertThat(id).isNotNull();
+        assertThat(amount).isEqualTo(250.00);
+    }
 
-		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-		assertThat(response.getBody()).isBlank();
-	}
+    @Test
+    void shouldNotReturnACashCardWithAnUnknownId() {
+        ResponseEntity<String> response = restTemplate.getForEntity("/cashcards/1000", String.class);
 
-	@Test
-	void shouldCreateANewCashCard() {
-		CashCard newCashCard = new CashCard(null, 250.00);
-		ResponseEntity<Void> createResponse = restTemplate.postForEntity("/cashcards", newCashCard, Void.class);
-		assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isBlank();
+    }
 
-		URI locationOfNewCashCard = createResponse.getHeaders().getLocation();
-		ResponseEntity<String> getResponse = restTemplate.getForEntity(locationOfNewCashCard, String.class);
-		assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    @Test
+    void shouldReturnACashCardWhenDataIsSaved() {
+        ResponseEntity<String> response = restTemplate.getForEntity("/cashcards/99", String.class);
+        DocumentContext documentContext = JsonPath.parse(response.getBody());
 
-		DocumentContext documentContext = JsonPath.parse(getResponse.getBody());
-		Number id = documentContext.read("$.id");
-		Double amount = documentContext.read("$.amount");
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-		assertThat(id).isNotNull();
-		assertThat(amount).isEqualTo(250.00);
-	}
+        Number id = documentContext.read("$.id");
+        assertThat(id).isEqualTo(99);
+
+        Double amount = documentContext.read("$.amount");
+        assertThat(amount).isEqualTo(123.45);
+    }
 }
